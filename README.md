@@ -1,0 +1,2 @@
+# tradeZen
+Crypto trade application
