@@ -4,9 +4,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authorization.AuthenticatedAuthorizationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +19,7 @@ import com.tradeZen.config.JwtProvider;
 import com.tradeZen.model.User;
 import com.tradeZen.repository.UserRepository;
 import com.tradeZen.response.AuthResponse;
+import com.tradeZen.service.CustomUserDetailsService;
 
 import io.jsonwebtoken.JwtParser;
 
@@ -25,6 +29,9 @@ public class AuthController {
 	
 	@Autowired
 	private UserRepository userRepository;
+	
+	@Autowired
+	private CustomUserDetailsService customUserDetailsService;
 
 	@PostMapping("/signup")
 	public ResponseEntity<AuthResponse> register(@RequestBody User user)throws Exception{
@@ -55,5 +62,36 @@ public class AuthController {
 		res.setMessage("registration success");
 				
 		return new ResponseEntity<>(res,HttpStatus.CREATED);
+	}
+	
+	@PostMapping("/signin")
+	public ResponseEntity<AuthResponse> login(@RequestBody User user)throws Exception{
+		
+		String userName = user.getEmail();
+		String password = user.getPassword();
+				
+		Authentication auth = authenticate(userName,password);
+		SecurityContextHolder.getContext().setAuthentication(auth);
+		
+		String jwt = JwtProvider.generateToken(auth);
+		
+		AuthResponse res=new AuthResponse();
+		res.setJwt(jwt);
+		res.setStatus(true);
+		res.setMessage("login success");
+				
+		return new ResponseEntity<>(res,HttpStatus.CREATED);
+	}
+
+	private Authentication authenticate(String userName, String password) {
+		// TODO Auto-generated method stub
+		UserDetails userDetails = customUserDetailsService.loadUserByUsername(userName);
+		if(userDetails==null) {
+			throw new BadCredentialsException("invalid username");
+		}
+		if(!password.equals(userDetails.getPassword())) {
+			throw new BadCredentialsException("invalid password");
+		}
+		return new UsernamePasswordAuthenticationToken(password, userDetails);
 	}
 }
