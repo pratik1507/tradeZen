@@ -1,0 +1,11 @@
+com\tradeZen\config\JwtTokenValidator.class
+com\tradeZen\model\User.class
+com\tradeZen\model\TwoFactorAuth.class
+com\tradeZen\controller\AuthController.class
+com\tradeZen\domain\VerificationType.class
+com\tradeZen\repository\UserRepository.class
+com\tradeZen\config\AppConfig.class
+com\tradeZen\controller\HomeController.class
+com\tradeZen\TradeZenApplication.class
+com\tradeZen\domain\USER_ROLE.class
+com\tradeZen\config\JwtConstant.class
