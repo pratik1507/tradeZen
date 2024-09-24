@@ -2,26 +2,29 @@ package com.tradeZen.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.authorization.AuthenticatedAuthorizationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tradeZen.config.JwtProvider;
+import com.tradeZen.model.TwoFactorOTP;
 import com.tradeZen.model.User;
 import com.tradeZen.repository.UserRepository;
 import com.tradeZen.response.AuthResponse;
 import com.tradeZen.service.CustomUserDetailsService;
-
-import io.jsonwebtoken.JwtParser;
+import com.tradeZen.service.EmailService;
+import com.tradeZen.service.TwoFactorOtpService;
+import com.tradeZen.service.WatchListService;
+import com.tradeZen.utils.OtpUtils;
 
 @RestController
 @RequestMapping("/auth")
@@ -32,6 +35,16 @@ public class AuthController {
 	
 	@Autowired
 	private CustomUserDetailsService customUserDetailsService;
+	
+	@Autowired
+	private TwoFactorOtpService twoFactorOtpService;
+
+	@Autowired
+	private WatchListService watchListService;
+	
+	@Autowired
+	private EmailService emailService;
+	
 
 	@PostMapping("/signup")
 	public ResponseEntity<AuthResponse> register(@RequestBody User user)throws Exception{
@@ -47,6 +60,8 @@ public class AuthController {
 		newUser.setPassword(user.getPassword());
 		
 		User savedUser = userRepository.save(newUser);
+		
+		watchListService.createWatchList(savedUser);
 		
 		Authentication auth = new UsernamePasswordAuthenticationToken(
 				user.getEmail(), 
@@ -75,6 +90,26 @@ public class AuthController {
 		
 		String jwt = JwtProvider.generateToken(auth);
 		
+		User authUser = userRepository.findByEmail(userName);
+		
+		if(user.getTwoFactorAuth().isEnabled()) {
+			AuthResponse res = new AuthResponse();
+			res.setMessage("Two Factor Auth is enabled");
+			res.setTwoFactorAuthEnabled(true);
+			String otp = OtpUtils.generateOTP();
+			
+			TwoFactorOTP oldTwoFactorOtp = twoFactorOtpService.findByUser(authUser.getId());
+			if(oldTwoFactorOtp!=null) {
+				twoFactorOtpService.deleteTwoFactorOtp(oldTwoFactorOtp);
+			}
+			TwoFactorOTP newTwoFactorOTP = twoFactorOtpService.createTwoFactorOtp(authUser, otp, jwt);
+			
+			emailService.sendVerificationOtpEmail(userName, otp);
+			
+			res.setSession(newTwoFactorOTP.getId());
+			return new ResponseEntity<>(res, HttpStatus.ACCEPTED);
+		}
+		
 		AuthResponse res=new AuthResponse();
 		res.setJwt(jwt);
 		res.setStatus(true);
@@ -93,5 +128,19 @@ public class AuthController {
 			throw new BadCredentialsException("invalid password");
 		}
 		return new UsernamePasswordAuthenticationToken(password, userDetails);
+	}
+	
+	@PostMapping("/two-factor/otp/{otp}")
+	public ResponseEntity<AuthResponse> verifySignInOtp(@PathVariable String otp, @RequestParam String id) throws Exception{
+		
+		TwoFactorOTP twoFactorOTP = twoFactorOtpService.findById(id);
+		if(twoFactorOtpService.verifyTwoFactorOtp(twoFactorOTP, otp)) {
+			AuthResponse res = new AuthResponse();
+			res.setMessage("Two factor authentication verified");
+			res.setTwoFactorAuthEnabled(true);
+			res.setJwt(twoFactorOTP.getJwt());
+			return new ResponseEntity<AuthResponse>(res,HttpStatus.OK);
+		}
+		throw new Exception("Invalid otp");
 	}
 }
