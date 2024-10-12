@@ -13,6 +13,6 @@ public interface PaymentService {
 	PaymentOrder getPaymentOrderById(Long id) throws Exception;
 	boolean proceedPaymentOrder(PaymentOrder paymentOrder, String paymentId) throws RazorpayException;
 	
-	PaymentResponse createRazorPayPaymentLink(User user,Long amount) throws RazorpayException;
+	PaymentResponse createRazorPayPaymentLink(User user,Long amount,Long orderId) throws RazorpayException;
 	PaymentResponse createStripePayPaymentLink(User user,Long amount,Long orderId) throws StripeException;
 }

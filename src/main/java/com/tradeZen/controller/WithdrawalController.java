@@ -15,14 +15,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tradeZen.model.User;
 import com.tradeZen.model.Wallet;
-import com.tradeZen.model.WalletTransaction;
 import com.tradeZen.model.Withdrawal;
 import com.tradeZen.service.UserService;
 import com.tradeZen.service.WalletService;
 import com.tradeZen.service.WithdrawalService;
 
 @RestController
-@RequestMapping("/api/withdrawal")
 public class WithdrawalController {
 	
 	@Autowired

@@ -1,5 +1,7 @@
 package com.tradeZen.controller;
 
+import java.math.BigDecimal;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,7 +47,7 @@ public class WalletController {
 		return new ResponseEntity<Wallet>(wallet,HttpStatus.ACCEPTED);
 	}
 	
-	@PutMapping("/app/wallet/{walletId}/transfer")
+	@PutMapping("/api/wallet/{walletId}/transfer")
 	public ResponseEntity<Wallet> walletToWalletTransfer(@RequestHeader("Authorization") String jwt,
 			@PathVariable Long walletId,@RequestBody WalletTransaction request)throws Exception{
 		User senderUser = userService.findUserProfileByJwt(jwt);
@@ -64,7 +66,7 @@ public class WalletController {
 		return new ResponseEntity<Wallet>(wallet,HttpStatus.ACCEPTED);
 	}
 	
-	@PutMapping("/app/wallet/deposite")
+	@PutMapping("/app/wallet/deposit")
 	public ResponseEntity<Wallet> addMoneyToWallet(@RequestHeader("Authorization") String jwt,
 			@RequestParam(name = "order_id")Long orderId,
 			@RequestParam(name = "payment_id")String paymentId
@@ -75,6 +77,9 @@ public class WalletController {
 		
 		Boolean status = paymentService.proceedPaymentOrder(order, paymentId);
 		
+		if(wallet.getBalance()==null) {
+			wallet.setBalance(BigDecimal.valueOf(0));
+		}
 		if(status) {
 			wallet = walletService.addBalance(wallet, order.getAmount());
 		}

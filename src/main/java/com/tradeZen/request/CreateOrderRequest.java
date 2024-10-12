@@ -8,6 +8,6 @@ import lombok.Data;
 public class CreateOrderRequest {
 
 	private String coinId;
-	private double quanity;
+	private double quantity;
 	private OrderType orderType;
 }

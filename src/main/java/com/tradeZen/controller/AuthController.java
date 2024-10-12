@@ -127,7 +127,7 @@ public class AuthController {
 		if(!password.equals(userDetails.getPassword())) {
 			throw new BadCredentialsException("invalid password");
 		}
-		return new UsernamePasswordAuthenticationToken(password, userDetails);
+		return new UsernamePasswordAuthenticationToken(userDetails,password, userDetails.getAuthorities());
 	}
 	
 	@PostMapping("/two-factor/otp/{otp}")
